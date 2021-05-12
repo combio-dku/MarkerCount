@@ -11,7 +11,7 @@ One can import the function by adding a line in your script, i.e., `from marker_
 
 ## Examples in Jupyter notebook
 
-We provided example usage of MarkerCount in Jupyter notebook file `cell_id_example_v03.ipynb`, where you can see how to import and how to run MarkerCount, both in reference-based and marker-based mode. For quick overveiw of the usage of MarkerCount, simply click `cell_id_example_v03.ipynb`.
+We provided example usage of MarkerCount in Jupyter notebook file `cell_id_example_v03.ipynb`, where you can see how to import and how to run MarkerCount, both in reference-based and marker-based mode. For quick overveiw of the usage of MarkerCount, simply click `cell_id_example_v03.ipynb` above in the file list.
 
 To run the example, please download the script, Jupyter notebook file and the two sample single-cell RNA-Seq data with `.h5ad` file extension (they are the two data we used in our paper mentioned below)
 
