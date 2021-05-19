@@ -21,7 +21,7 @@ To run the example, please download the script, Jupyter notebook file, maker mat
 3. Run jupyter notebook and open the jupyter notebook file `cell_id_example_v03.ipynb`
 4. You can run the codes step-by-step and can see the intermediate and final results.
 
-To run MarkerCount, you need the python packages `Numpy` and `Pandas`.
+To run MarkerCount, you need the python packages `Numpy`, `Pandas`, `sklearn` and `scipy`.
 `scanpy` and `plotly` are required only to show the results, not for the MarkerCount itself.
 All of them can be installed simply using `pip` command.
 
