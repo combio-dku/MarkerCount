@@ -520,7 +520,7 @@ def revise_unassinged( cluster_label, cell_type_pred, X_pca, df_score, \
                     df_dist[ct] = norm_mahal(row_vecs, icov)
                     
                     max_dist_intra = df_dist.loc[cells_target, ct].max()
-                    bt = df_dist[ct] <= (max_dist_intra)*0.85
+                    bt = df_dist[ct] <= (max_dist_intra)*0.8
                     cell_type_new[bt] = ct
                     cell_type_pred_ary[bx] = cell_type_new                   
                     
