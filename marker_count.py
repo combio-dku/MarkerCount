@@ -1,4 +1,5 @@
 import scipy.stats
+from scipy.spatial import distance_matrix
 import math, copy
 import numpy as np
 import pandas as pd
@@ -106,8 +107,6 @@ def get_marker_profile( df_ofreq, of_th = 0.9, N_mkr = 0, stype = 'max'):
             b[odr[:N_sel]] = True
             bs1 = b | bf1
                         
-        # wgt = score*bs1.astype(np.float32) # (of1-of2)*bs1.astype(np.float32) # 
-        # wgt = wgt/np.sum(wgt)
         wgt = bs1.astype(np.float32) # (of1-of2)*bs1.astype(np.float32) # 
         df_profile_b.loc[c,:] = wgt # bs1.astype(np.float32)
         
@@ -121,14 +120,6 @@ def get_marker_profile( df_ofreq, of_th = 0.9, N_mkr = 0, stype = 'max'):
         df_stat[c+'_f1'] = list(of1_sel[odr]) # list(score_sel[odr])
         df_stat[c+'_f2'] = list(of2_sel[odr])
         
-        '''
-        print('Wgt: max %4.3f, mn %4.3f, md %4.3f, min %4.3f' \
-              %(wgt.max(), wgt.sum()/(wgt>0).sum(), np.median(wgt[wgt>0]), wgt[wgt>0].min()))
-        #'''
-        # df_profile_b.loc[c,:] = bs1.astype(np.float32)
-   
-    # print(df_stat)
-            
     return df_profile_b
 
 
@@ -155,53 +146,6 @@ def get_score( X_in, df_mkr ):
     best_score = df_score.max(axis=1)
     
     cell_type_pred = cell_types[idx]
-    '''
-    dfs2 = df_score.copy(deep=True)
-    dfs2 = best_score - dfs2
-    b_tie = (dfs2 < 0.2).sum(axis=1) > 1
-    print('N tie = %i' % np.sum(b_tie))
-    cell_type_pred[b_tie] = STR_UNASSIGNED
-    #'''
-    
-    return df_score, cell_type_pred, best_score
-
-
-def get_score_new( X_in, df_mkr, N_mkr_max = 50 ):
-    
-    cell_types = df_mkr.index.values
-    X = (X_in > 0)
-    genes = X.columns.values
-    gsel = df_mkr.columns.values
-    gsel = set(gsel).intersection(genes)
-    df_mkr_gsel = df_mkr.loc[:,gsel]
-
-    df_score = pd.DataFrame(index = X.index.values, columns = cell_types)
-    for ct in cell_types:
-        b = df_mkr_gsel.loc[ct,:] > 0
-        gsel = df_mkr_gsel.columns.values[b]
-        wgt = df_mkr_gsel.loc[ct,gsel]
-        # df_score.loc[:,ct] = (X.loc[:,gsel]).sum(axis=1)/np.sum(b)
-        Div = 1/min( np.sum(wgt), N_mkr_max )
-        df_score.loc[:,ct] = (X.loc[:,gsel]*wgt).sum(axis=1)*Div
-
-        b = df_score.loc[:,ct] > 1
-        df_score.loc[b,ct] = 1 
-    
-    n_mkrs = df_mkr_gsel.sum(axis = 1).T
-    wgt_mkrs = 1/(1+3*np.exp(-(n_mkrs-1)*0.5))    
-    df_score = df_score*wgt_mkrs
-            
-    idx = np.array(df_score).argmax(axis=1)
-    best_score = df_score.max(axis=1)
-    
-    cell_type_pred = cell_types[idx]
-    #'''
-    dfs2 = df_score.copy(deep=True)
-    dfs2 = best_score - dfs2
-    b_tie = (dfs2 == 0).sum(axis=1) > 1
-    print('N tie = %i' % np.sum(b_tie))
-    cell_type_pred[b_tie] = STR_UNASSIGNED
-    #'''
     
     return df_score, cell_type_pred, best_score
 
@@ -411,13 +355,13 @@ def correct_pred( cell_type_pred_in, best_score, df_thresh ):
 
 
 ## PCA and Clustering
-def pca_and_clustering(X, N_clusters, clust_algo = 'gm', \
-                       N_clust_per_cell_type = 3, N_pca_components = 20):
+def pca_and_clustering(X, N_clusters, clust_algo = 'gm', N_pca_components = 15):
 
     ## Get X_pca
     pca = PCA(n_components = N_pca_components, copy = True, random_state = 0)
-    res = pca.fit((X).astype(np.float32))
-    X_pca = X.dot(res.components_.T) 
+    Xi = X #(X > 0).astype(np.float32)
+    res = pca.fit(Xi)
+    X_pca = Xi.dot(res.components_.T) 
 
     if clust_algo[:2] == 'gm':
         gmm = mixture.GaussianMixture(n_components = N_clusters, random_state = 0)
@@ -469,131 +413,150 @@ def get_type_num( items, verbose = True ):
     item_lst = np.array(item_lst)
     return item_lst[odr], n_types[odr] 
     
-        
+def get_maj(ivec, cto, p_cells_dict, p_min = 0.1):
+
+    items = list(set(ivec))
+    if len(items) == 1:
+        return cto
+    
+    Num = np.zeros(len(items))
+    Score = np.zeros(len(items))
+    for k, item in enumerate(items):
+        b = ivec == item
+        Num[k] = np.sum(b)
+    k = np.argmax(Num)
+
+    b = False
+    if items[k] == STR_UNASSIGNED:
+        odr = (-Num).argsort()        
+        if len(odr) > 1:
+            if Num[odr[1]] >= round(np.sum(Num)*(p_min)):
+                k = odr[1]
+            # elif Num[k] <= round(np.sum(Num)*(1-p_min)):
+            #     return cto
+       
+    return  items[k]
+
+
+def apply_knn(X_pca, cell_type, p_cells_dict, p_min, Nsel):
+
+    ## Apply KNN(k-nearest neighbor) rule
+    cells = X_pca.index.values
+    dist_mat = distance_matrix( x = X_pca,  y = X_pca )
+    for k in range( dist_mat.shape[0] ):
+        dist_mat[k,k] = 1e20
+     
+    cell_type_new = copy.deepcopy(cell_type)
+    for k in range( dist_mat.shape[0] ):
+        dx = np.array(dist_mat[k,:])
+        odr = dx.argsort()[:min(Nsel, len(dx))]
+        ct = get_maj(cell_type[odr], cell_type[k], p_cells_dict, p_min = p_min)
+        cell_type_new[k] = ct
+   
+    return cell_type_new
+    
+
 def revise_unassinged( cluster_label, cell_type_pred, X_pca, df_score, \
-                       p_maj = 0.5, p_min = 0.1, d_red = 0.9 ):
+                       p_maj = 0.2, p_min = 0.2, d_red = 0.9, Nsel = 25 ):
 
     cluster_labels = list(set(cluster_label))    
     cell_type_pred_ary = np.array(cell_type_pred)
     cell_name_lst = list(set(cell_type_pred))
     for c in cluster_labels:
         b = cluster_label == c
+
         ct_sel = cell_type_pred_ary[b]
-        
         bua = cell_type_pred_ary == STR_UNASSIGNED
-        
         cell_name_lst, n_cells = get_type_num( ct_sel, verbose = False )
-        bn = n_cells >= 10
+        bn = (n_cells >= 10) & (n_cells/sum(n_cells) >= 0.1 )
         cell_name_lst = cell_name_lst[bn]
         n_cells = n_cells[bn]
-        p_cells = n_cells/len(ct_sel)
+        p_cells_dict = dict(zip(cell_name_lst, n_cells/np.sum(n_cells)))
 
-        if (np.sum(b&bua) > np.sum(b)*(1-p_min)) | (np.sum(b&bua) == 0):
+        if (len(n_cells) <= 1): # only one cell type
             pass
-            # cell_type_pred_ary[b] = STR_UNASSIGNED
-            
-        elif (np.sum(b&bua) <= np.sum(b)*(1-p_maj)): # & (len(cell_name_lst) > 2):
-            bn = n_cells >= 10 # len(cell_name_lst)
-            cell_name_lst_sel = list(np.array(cell_name_lst)[bn])
+        else:
+            bx = b
+            cell_type_pred_ary[bx] = apply_knn(X_pca.loc[bx,:], cell_type_pred_ary[bx], p_cells_dict, p_min, Nsel)
 
-            if STR_UNASSIGNED in cell_name_lst_sel:
-                cell_name_lst_sel.remove(STR_UNASSIGNED)
+            ## Recompute variables
+            ct_sel = cell_type_pred_ary[b]               
+            bua = cell_type_pred_ary == STR_UNASSIGNED
+            cell_name_lst, n_cells = get_type_num( ct_sel, verbose = False )
+            bn = (n_cells >= 10) & (n_cells/sum(n_cells) >= 0.1 )
+            cell_name_lst = cell_name_lst[bn]
+            n_cells = n_cells[bn]
 
-            if len(cell_name_lst_sel) > 0:
-                centroids = []
-                iCovs = []
-                Sizes = []
-                for m, ct in enumerate(cell_name_lst_sel):
+            if (np.sum(b&bua) > np.sum(b)*(1-p_maj)):
+                pass
+            elif (np.sum(b&bua) <= np.sum(b)*(1-p_maj)): 
+                
+                cell_name_lst_sel = list(cell_name_lst)
+                if STR_UNASSIGNED in cell_name_lst_sel:
+                    cell_name_lst_sel.remove(STR_UNASSIGNED)
+
+                if len(cell_name_lst_sel) == 1:
+                    
+                    m = 0
+                    ct = cell_name_lst_sel[0]
                     bc = cell_type_pred_ary == ct
                     cent = X_pca.loc[b&bc,:].mean(axis = 0)
-                    X_cent = X_pca - cent
-                    Cv = X_cent.loc[b&bc,:].T.dot(X_cent.loc[b&bc,:])/X_cent.shape[0]
+                    X_cent = X_pca.loc[b&bc,:] - cent
+                    Cv = X_cent.T.dot(X_cent)/X_cent.shape[0]
                     s = np.mean(np.diagonal(Cv))
                     Cv = Cv + (s*0.1)*np.identity(Cv.shape[0])
                     icov = np.linalg.inv( Cv )
-                    sz = np.sum(b&bc)/np.sum(b)
-                    centroids.append(cent)
-                    iCovs.append(icov)
-                    Sizes.append(sz)
+                    # sz = np.sum(b&bc)/np.sum(b)
+                    cells_target = X_pca.index.values[b&bc]
 
-                cells = X_pca.index.values[b&bua]
-                X_pca_ua = X_pca.loc[b&bua,:]
-                df_score_ua = df_score.loc[b&bua,:]
-                df_dist = pd.DataFrame(index = X_pca_ua.index.values, columns = cell_name_lst_sel)
-                df_dist.loc[:,:] = 1e10 
+                    bx = b 
+                    cells_cluster = X_pca.index.values[bx]
+                    X_pca_ua = X_pca.loc[bx,:]
+                    cell_type_new = copy.deepcopy(cell_type_pred_ary[bx] )
+                    
+                    df_dist = pd.DataFrame(index = X_pca_ua.index.values, columns = cell_name_lst_sel)
+                    df_dist.loc[:,:] = 1e10 
+                    row_vecs = X_pca_ua - cent
+                    df_dist[ct] = norm_mahal(row_vecs, icov)
+                    
+                    max_dist_intra = df_dist.loc[cells_target, ct].max()
+                    bt = df_dist[ct] <= (max_dist_intra)*0.85
+                    cell_type_new[bt] = ct
+                    cell_type_pred_ary[bx] = cell_type_new                   
+                    
+                elif len(cell_name_lst_sel) > 1:
+                    
+                    centroids = []
+                    iCovs = []
+                    Sizes = []
+                    for m, ct in enumerate(cell_name_lst_sel):
+                        bc = cell_type_pred_ary == ct
+                        cent = X_pca.loc[b&bc,:].mean(axis = 0)
+                        X_cent = X_pca.loc[b&bc,:] - cent
+                        Cv = X_cent.T.dot(X_cent)/X_cent.shape[0]
+                        s = np.mean(np.diagonal(Cv))
+                        Cv = Cv + (s*0.1)*np.identity(Cv.shape[0])
+                        icov = np.linalg.inv( Cv )
+                        sz = np.sum(b&bc)/np.sum(b)
+                        centroids.append(cent)
+                        iCovs.append(icov)
+                        Sizes.append(sz)
 
-                for m, ct in enumerate(cell_name_lst_sel):
-                    row_vecs = X_pca_ua - centroids[m]
-                    df_dist[ct] = norm_mahal(row_vecs, iCovs[m]) *(1/Sizes[m])
-                    # df_dist[ct] = norm_mahal(row_vecs, iCovs[m])*(1-df_score_ua[ct])/(Sizes[m])
+                    bx = b #&bua 
+                    cells = X_pca.index.values[bx]
+                    X_pca_ua = X_pca.loc[bx,:]
+                    df_score_ua = df_score.loc[bx,:]
+                    df_dist = pd.DataFrame(index = X_pca_ua.index.values, columns = cell_name_lst_sel)
+                    df_dist.loc[:,:] = 1e10 
 
-                idx = np.array(df_dist).argmin(axis=1)
-                # dist = df_dist.min(axis=1)
-                cell_type_new = df_dist.columns.values[idx]                
-                cell_type_pred_ary[b&bua] = cell_type_new
-        else: 
-            #if (np.sum(b&bua) < np.sum(b)*(0.6)) & (np.sum(b&bua) > 0):
-            bn = (n_cells >= 10) # & (p_cells > p_min)
-            cell_name_lst_sel = list(np.array(cell_name_lst)[bn])
-
-            if STR_UNASSIGNED in cell_name_lst_sel:
-                cell_name_lst_sel.remove(STR_UNASSIGNED)
-
-            if len(cell_name_lst_sel) > 0:
-                centroids = []
-                iCovs = []
-                Sizes = []
-                for m, ct in enumerate(cell_name_lst_sel):
-                    bc = cell_type_pred_ary == ct
-                    cent = X_pca.loc[b&bc,:].mean(axis = 0)
-                    X_cent = X_pca - cent
-                    Cv = X_cent.loc[b&bc,:].T.dot(X_cent.loc[b&bc,:])/X_cent.shape[0]
-                    s = np.mean(np.diagonal(Cv))
-                    Cv = Cv + (s*0.1)*np.identity(Cv.shape[0])
-                    icov = np.linalg.inv( Cv )
-                    sz = np.sum(b&bc)/np.sum(b)
-                    centroids.append(cent)
-                    iCovs.append(icov)
-                    Sizes.append(sz)
-
-                cells = X_pca.index.values[b&bua]
-                X_pca_ua = X_pca.loc[b&bua,:]
-                X_pca_a = X_pca.loc[b&(~bua),:]
-                # cell_type_pred_ary_a = cell_type_pred_ary[b&(~bua)]
-                cell_name_lst_sel_ext = cell_name_lst_sel + [STR_UNASSIGNED]
-                df_dist = pd.DataFrame(index = X_pca_ua.index.values, columns = cell_name_lst_sel_ext)
-                df_dist.loc[:,:] = 1e10 
-
-                for m, ct in enumerate(cell_name_lst_sel):
-                    bc = cell_type_pred_ary == ct
-                    if np.sum(b&(~bua)&(~bc)) > 10:
-                        row_vecs = X_pca.loc[b&(~bua)&(~bc),:] - centroids[m]
-                        dist = list(norm_mahal(row_vecs, iCovs[m])/(Sizes[m]))
-                        dist_max = np.min(dist)
-                    else:
-                        if np.sum(b&(~bua)&bc) > 0:
-                            row_vecs = X_pca.loc[b&(~bua)&bc,:] - centroids[m]
-                            dist = list(norm_mahal(row_vecs, iCovs[m])/(Sizes[m]))
-                            dist.sort()
-                            dist_max = dist[int(len(dist)*d_red)]
-                        else:
-                            dist_max = -1
-
-                    if dist_max > 0:
+                    for m, ct in enumerate(cell_name_lst_sel):
                         row_vecs = X_pca_ua - centroids[m]
-                        dist_vec = norm_mahal(row_vecs, iCovs[m])/(Sizes[m])
-                        bd = dist_vec > dist_max
-                        dist_vec[bd] = 1e10+1
-                        df_dist[ct] = dist_vec
-                    else:
-                        df_dist[ct] = 1e10 +1
+                        df_dist[ct] = norm_mahal(row_vecs, iCovs[m]) #*(1/Sizes[m])
 
-                idx = np.array(df_dist).argmin(axis=1)
-                # dist = df_dist.min(axis=1)
-                cell_type_new = df_dist.columns.values[idx]                
-                cell_type_pred_ary[b&bua] = cell_type_new
-        
-        
+                    idx = np.array(df_dist).argmin(axis=1)
+                    cell_type_new = df_dist.columns.values[idx]                
+                    cell_type_pred_ary[bx] = cell_type_new
+                
     return cell_type_pred_ary    
 
 
@@ -689,7 +652,6 @@ def load_marker_mat( file = 'sc_makers.csv', N_mkrs = 24, score_ref = 'mean' ):
     df_mkr = pd.DataFrame(index = cell_types, columns = genes_array)
     df_mkr.loc[:,:] = 0
     
-    
     for ct in cell_types:
         b = df['cell_type'] == ct
         df_sel = df.loc[b,:]
@@ -709,7 +671,7 @@ def load_marker_mat( file = 'sc_makers.csv', N_mkrs = 24, score_ref = 'mean' ):
         
     
 def MkrCnt_Train( X_ref = None, cell_type_ref = None, \
-                  mkr_mat = None, N_mkrs = 18, Fold_th = 20, of_th = 0.95, \
+                  mkr_mat = None, N_mkrs = 18, Fold_th = 20, of_th = 0.9, \
                   ttype = 's', stype = 'mean', cell_types_to_excl = [] ):
     
     if mkr_mat is not None:
@@ -732,11 +694,6 @@ def MkrCnt_Train( X_ref = None, cell_type_ref = None, \
         
         df_param = get_gmm_param( df_score, cell_type_true = cell_type_true )
 
-        '''
-        print('O_freq threshold = %4.2f' % of_th)
-        print((df_ofreq >= of_th).sum(axis=1))
-        '''
-        
     # b = df_mkr.sum(axis=0) == 1
     # df_mkr = df_mkr.loc[:,b]  
     
@@ -750,9 +707,9 @@ def MkrCnt_Train( X_ref = None, cell_type_ref = None, \
 
 def MkrCnt_Test( X_test, df_mkr_mat, df_param, df_score_ref = None, \
                  min_th = 0.2, log_transformed = True, \
-                 ttype = 's', clustering = 'gm', N_clust_per_cell_type = 3, \
+                 ttype = 's', clust_algo = 'gm', N_clusters = None, N_pca = 15, \
                  p_maj = 0.2, p_min = 0.2, cluster_label = None, X_pca = None, \
-                 target_FPR = 0.06, verbose = True ):
+                 target_FPR = 0.05, verbose = True ):
 
     df_results = pd.DataFrame( index = X_test.index.values, \
                                columns = ['cluster_label']) 
@@ -760,24 +717,23 @@ def MkrCnt_Test( X_test, df_mkr_mat, df_param, df_score_ref = None, \
     cells_to_test = df_mkr_mat.index.values
         
     if log_transformed:
-        # X_test_for_clustering = X_test
         pass
     else:
         X_test = X_test.div((X_test.sum(axis=1)+1e-10)/100000, axis=0)
-        # X_test_for_clustering = np.log2(1+X_test)
         X_test = np.log2(1+X_test)
         
     if (cluster_label is None) | (X_pca is None):
             
-        if (clustering != 'gm') &  (clustering != 'km'):
+        if (clust_algo != 'gm') &  (clust_algo != 'km'):
             print('Supported clustering algorithms are gmm and km')
             return
         
-        N_clusters = int( N_clust_per_cell_type*len(cells_to_test) )
+        if N_clusters is None:
+            N_clusters = int(math.sqrt(X_test.shape[0])/2)
+        
         cluster_label, X_pca = \
-            pca_and_clustering( X_test, N_clusters, clust_algo = clustering, \
-                                N_clust_per_cell_type = N_clust_per_cell_type, \
-                                N_pca_components = 20)
+            pca_and_clustering( X_test, N_clusters, clust_algo = clust_algo, \
+                                N_pca_components = N_pca)
         
     N_clusters = len(set(cluster_label))
     if verbose: print_clustering_info(cluster_label)
@@ -803,14 +759,6 @@ def MkrCnt_Test( X_test, df_mkr_mat, df_param, df_score_ref = None, \
         else:
             df_thresh = get_threshold_using_param( df_param, Target_FPR = tfdr )
         
-        # if cnt == 3: print(df_thresh)
-        '''
-        ths = list(df_thresh['threshold'])
-        ths.sort()
-        min_th = ths[int(len(ths)*min_th)]
-        print('Min.th: %4.3f' % min_th)
-        '''
-        
         b = df_thresh['threshold'] < min_th
         df_thresh.loc[b,'threshold'] = min_th
         
@@ -818,33 +766,33 @@ def MkrCnt_Test( X_test, df_mkr_mat, df_param, df_score_ref = None, \
         df_thresh.loc[b,'threshold'] = 0.9
         
         cell_type_pred_c = correct_pred( cell_type_pred, best_score, df_thresh )
-        #'''
+        
         cell_type_pred_c = \
             revise_unassinged( cluster_label, cell_type_pred_c, \
                                X_pca = X_pca, df_score = df_score,\
                                p_maj = p_maj, p_min = p_min )
-        #'''
 
         if len(target_FPR_lst) == 1: cn = 'cell_type_pred'
         else: cn = 'MkrCnt, tFPR_%g' % tfdr            
         df_results[cn] = cell_type_pred_c
-        if verbose: print('MarkerCount_Ref processing done.')
             
     return df_results, df_score
 
 
 def MkrCnt_Ref( X_ref, cell_type_ref, X_test = None, df_mkr_mat = None, \
-            N_mkrs = 18, of_th = 0.9, min_th = 0.2, ttype = 's', stype = 'mean', \
+            N_mkrs = 18, of_th = 0.85, min_th = 0.2, ttype = 's', stype = 'mean', \
             cell_types_to_excl = [], log_transformed = False, \
-            clustering = 'gm', N_clust_per_cell_type = 3, \
-            p_maj = 0.2, p_min = 0.2, cluster_label = None, X_pca = None, \
-            target_FPR = 0.06, file_to_save_marker = None, verbose = True ):
+            clust_algo = 'gm', N_clusters = None, \
+            p_maj = 0.2, p_min = 0.2, cluster_label = None, X_pca = None, N_pca = 15, \
+            target_FPR = 0.05, file_to_save_marker = None, verbose = True ):
 
     if ((X_ref is None) | (cell_type_ref is None)):
         print('ERROR:required information  missing .')
         return None
     else:
-        X_r = X_ref # .copy(deep = True) 
+        if verbose: print('MarkerCount-Ref running ..  ')
+    
+        X_r = X_ref.copy(deep = True)
         genes_ref = (X_r.columns.values)
         gn_dict = {}
         for gn in list(genes_ref):
@@ -853,7 +801,8 @@ def MkrCnt_Ref( X_ref, cell_type_ref, X_test = None, df_mkr_mat = None, \
         genes_ref = (X_r.columns.values)
 
         if X_test is not None:
-            X_t = X_test # .copy(deep = True) 
+            
+            X_t = X_test.copy(deep = True) 
             genes_test = (X_t.columns.values)
             gn_dict = {}
             for gn in list(genes_test):
@@ -879,10 +828,10 @@ def MkrCnt_Ref( X_ref, cell_type_ref, X_test = None, df_mkr_mat = None, \
         if X_test is not None:
             df_res, df_score = MkrCnt_Test( X_t, df_mkr, df_param, \
                                             df_score_ref = df_score_ref, min_th = min_th, \
-                             log_transformed = log_transformed, clustering = clustering, \
-                             N_clust_per_cell_type = N_clust_per_cell_type, \
+                             log_transformed = log_transformed, clust_algo = clust_algo, \
+                             N_clusters = N_clusters, N_pca = N_pca, \
+                             cluster_label = cluster_label, X_pca = X_pca, \
                              p_maj = p_maj, p_min = p_min, \
-                                            cluster_label = cluster_label, X_pca = X_pca, \
                              target_FPR = target_FPR, verbose = verbose )   
         else:
             df_res, df_score = None, None
@@ -891,22 +840,21 @@ def MkrCnt_Ref( X_ref, cell_type_ref, X_test = None, df_mkr_mat = None, \
             save_markers( df_mkr, file = file_to_save_marker+'_list.csv', df_ofreq = df_ofreq, ct_exc = cell_types_to_excl )
             df_mkr.to_csv(file_to_save_marker+'_matrix.csv')
         
+        if verbose: print('MarkerCount-Ref processing done.')
+        
     return df_res, df_mkr, df_param, df_score
 
 
 def MarkerCount_Ref( X_ref, cell_type_ref, X_test = None, df_mkr_mat = None, \
-            N_mkrs = 18, of_th = 0.9, min_th = 0.2, \
-            cell_types_to_excl = [], log_transformed = False, \
-            clustering = 'gm', N_clust_per_cell_type = 3, \
-            cluster_label = None, X_pca = None, \
-            target_FPR = 0.06, file_to_save_marker = None, verbose = True ):
+            N_mkrs = 18, of_th = 0.85, cell_types_to_excl = [], log_transformed = False, \
+            N_clusters = None, cluster_label = None, X_pca = None, N_pca = 15, \
+            target_FPR = 0.05, file_to_save_marker = None, verbose = True ):
 
     df_res, df_mkr, df_param, df_score = \
-        MkrCnt_Ref( X_ref = X_ref, cell_type_ref = cell_type_ref, X_test = X_test, df_mkr_mat = None, \
-            N_mkrs = N_mkrs, of_th = of_th, min_th = min_th, ttype = 's', stype = 'mean', \
+        MkrCnt_Ref( X_ref = X_ref, cell_type_ref = cell_type_ref, X_test = X_test, \
+            df_mkr_mat = df_mkr_mat, N_mkrs = N_mkrs, of_th = of_th, \
             cell_types_to_excl = cell_types_to_excl, log_transformed = log_transformed, \
-            clustering = clustering, N_clust_per_cell_type = N_clust_per_cell_type, \
-            p_maj = 0.2, p_min = 0.2, cluster_label = cluster_label, X_pca = X_pca, \
+            N_clusters = N_clusters, cluster_label = cluster_label, X_pca = X_pca, N_pca = N_pca, \
             target_FPR = target_FPR, file_to_save_marker = file_to_save_marker, verbose = verbose )
 
     if X_test is not None:
@@ -926,19 +874,13 @@ def get_best_n_markers( df_ofreq, ct, of_th = 0.9, N_mkr = 0, stype = 'mean', mk
     else:
         of2 = df_ofreq.loc[~b,:].mean(axis=0) + MIN_OFREQ
 
-    # score = np.log2(of1/of2)
-    # b1 = score > 0
-    # score = score*of1
-
-    # b1 = (of1 >= of_th).astype(int)
-    # score = score*of1*b1
     score = (of1)*((1-of2)**2)
 
     if N_mkr == 0:
         bs1 = (of1 >= of_th) & (of2 < (1-of_th))
         return genes[bs1]
     else:
-        bf1 = (of1 >= of_th) & (of2 < (1-of_th))  # score > np.log2(fold_th)
+        bf1 = (of1 >= of_th) & (of2 < (1-of_th))  
         s = np.array(score)
         b = np.full(len(s), False)
         odr = (-s).argsort()
@@ -954,9 +896,9 @@ def get_best_n_markers( df_ofreq, ct, of_th = 0.9, N_mkr = 0, stype = 'mean', mk
             return gn
 
 
-def MkrCnt( X, mkr_mat, min_th = 0.2, N_mkrs_max = 18, N_mkrs_min = 3, of_th = 0.9, \
-            target_FPR = 0.12, clustering = 'gm', N_clust_per_cell_type = 3, \
-            cluster_label = None, X_pca = None, \
+def MkrCnt( X, mkr_mat, min_th = 0.2, N_mkrs_max = 18, N_mkrs_min = 3, of_th = 0.85, \
+            target_FPR = 0.12, clustering = 'gm', N_clusters = None, \
+            cluster_label = None, X_pca = None, N_pca = 15, \
             p_maj = 0.2, p_min = 0.2, init_fpr = 0.08, \
             log_transformed = False, Loop = 1, sr = 0.8, \
             ct_map = None, verbose = False ):
@@ -966,18 +908,22 @@ def MkrCnt( X, mkr_mat, min_th = 0.2, N_mkrs_max = 18, N_mkrs_min = 3, of_th = 0
     
     df_comp = pd.DataFrame( index = X.index.values ) 
     cells_to_test = list(mkr_mat.index.values)
+
+    if verbose: print('MarkerCount running ..  ')
     
     ######## Preprocessing for test data
+    if log_transformed:
+        X_for_clustering = X
+    else:
+        X = X.div((X.sum(axis=1) + 1e-10) / 100000, axis=0)
+        X = np.log2(1 + X)
+        X_for_clustering = X
+
     if (cluster_label is None) | (X_pca is None):
-        if log_transformed:
-            X_for_clustering = X
-        else:
-            X = X.div((X.sum(axis=1)+1e-10)/100000, axis=0)
-            X_for_clustering = np.log2(1+X)
-        N_clusters = int( N_clust_per_cell_type*len(cells_to_test) )
+        if N_clusters is None:
+            N_clusters = int(math.sqrt(X.shape[0])/2)    
         cluster_label_tmp, X_pca = pca_and_clustering(X_for_clustering, N_clusters, clust_algo = clustering, \
-                                    N_clust_per_cell_type = N_clust_per_cell_type, \
-                                    N_pca_components = 20)
+                                   N_pca_components = N_pca)
         if (cluster_label is None):
             cluster_label = cluster_label_tmp
     else:
@@ -990,8 +936,7 @@ def MkrCnt( X, mkr_mat, min_th = 0.2, N_mkrs_max = 18, N_mkrs_min = 3, of_th = 0
     df_score, cell_type_pred, best_score = get_score( X, df_mkr )
     df_param = get_gmm_param( df_score, cell_type_true = None )
     
-    ## Loop start
-    if (Loop > 0): # & ( mkr_mat.sum(axis=1).max() > N_mkrs):
+    if (Loop > 0): 
         
         df_thresh = get_threshold_using_param( df_param, Target_FPR = init_fpr )
 
@@ -1011,9 +956,6 @@ def MkrCnt( X, mkr_mat, min_th = 0.2, N_mkrs_max = 18, N_mkrs_min = 3, of_th = 0
         idx = int(len(odr)*sr)
         sth = best_score2[odr[idx]]
 
-        # clust_ct_score_th = pd.DataFrame(index = df_mkr.index.values, columns = cluster_lst)
-        # clust_ct_score_th.loc[:,:] = sth
-
         for k in range(Loop):
 
             for n, clst in enumerate(cluster_lst):
@@ -1027,22 +969,9 @@ def MkrCnt( X, mkr_mat, min_th = 0.2, N_mkrs_max = 18, N_mkrs_min = 3, of_th = 0
                         ## if the cell type comprises at least 10% of a cluster
                         if (cell_num[m] >= total_num*0.1) & (cell_num[m] >= 10): 
                             pass
-                            # clust_ct_score_th.loc[ct,clst] = df_score2.loc[b&b1,ct].mean()
                         else:
                             ct_pred2[b&b1] = STR_UNASSIGNED
 
-            if verbose: 
-                b = ct_pred2 != STR_UNASSIGNED
-                print('Sth = %4.3f, N_a = %i out of %i' % (sth, np.sum(b), len(b)))
-
-            # b = df_mkr.sum(axis = 1) < N_mkrs_min
-            # if np.sum(b) > 0:
-            '''
-            df_mkr_tmp, df_score_tmp, ct_pred_tmp, df_ofreq_tmp_all = \
-                        gen_marker_profile( X, ct_pred2, N_mkrs, \
-                                            [STR_UNASSIGNED], of_th = of_th, \
-                                            ttype = 's', stype = 'mean')
-            '''
             df_ofreq_tmp_all = get_occurrence_freq(X, ct_pred2, cells_to_test)
 
             for ct in cells_to_test:
@@ -1051,14 +980,7 @@ def MkrCnt( X, mkr_mat, min_th = 0.2, N_mkrs_max = 18, N_mkrs_min = 3, of_th = 0
                 ct_mkrs = set(ct_mkrs).intersection(X.columns.values)
                 
                 if len(ct_mkrs) > N_mkrs:
-                    '''
-                    X_gsel = X.loc[:,ct_mkrs]
-                    df_mkr_tmp, df_score_tmp, ct_pred_tmp, df_ofreq_tmp = \
-                        gen_marker_profile( X_gsel, ct_pred2, len(ct_mkrs), \
-                                            [STR_UNASSIGNED], of_th = of_th, \
-                                            ttype = 's', stype = 'mean')
-                    '''
-                    if ct in list(df_ofreq_tmp_all.index.values):
+                     if ct in list(df_ofreq_tmp_all.index.values):
                         mkrs = get_best_n_markers( df_ofreq_tmp_all.loc[:,ct_mkrs], ct, of_th = of_th, \
                                                    N_mkr = N_mkrs)
                         df_mkr2.loc[ct,:] = 0
@@ -1069,7 +991,6 @@ def MkrCnt( X, mkr_mat, min_th = 0.2, N_mkrs_max = 18, N_mkrs_min = 3, of_th = 0
                         mkrs = get_best_n_markers( df_ofreq_tmp_all, ct, of_th = of_th, \
                                                    N_mkr = N_mkrs_min, mkrs_known = ct_mkrs)
                         df_mkr2.loc[ct,:] = 0
-                        # df_mkr2.loc[ct,mkrs] = 1
                         for mkr in mkrs:
                             if mkr in list(df_mkr2.columns.values):
                                 df_mkr2.loc[ct,mkr] = 1
@@ -1129,18 +1050,13 @@ def MkrCnt( X, mkr_mat, min_th = 0.2, N_mkrs_max = 18, N_mkrs_min = 3, of_th = 0
     return df_comp, df_thresh_all, df_score, df_param
 
 
-def MarkerCount( X, mkr_mat, min_th = 0.2, N_mkrs_max = 18, N_mkrs_min = 3, of_th = 0.9, \
-            target_FPR = 0.12, clustering = 'gm', N_clust_per_cell_type = 3, \
-            cluster_label = None, X_pca = None, \
-            log_transformed = False, \
-            verbose = False ):
+def MarkerCount( X, mkr_mat, target_FPR = 0.12, \
+            N_clusters = None, cluster_label = None, X_pca = None, N_pca = 15, \
+            log_transformed = False, verbose = False ):
 
     df_pred, df_thresh_all, df_score, df_param = \
-        MkrCnt( X, mkr_mat, min_th = min_th, N_mkrs_max = N_mkrs_max, N_mkrs_min = N_mkrs_min, of_th = of_th, \
-            target_FPR = target_FPR, clustering =clustering, N_clust_per_cell_type = N_clust_per_cell_type, \
-            cluster_label = cluster_label, X_pca = X_pca, \
-            p_maj = 0.2, p_min = 0.2, init_fpr = 0.08, \
-            log_transformed = log_transformed, Loop = 1, sr = 0.8, \
-            ct_map = None, verbose = verbose )
+        MkrCnt( X, mkr_mat, target_FPR = target_FPR, \
+            N_clusters = N_clusters, cluster_label = cluster_label, X_pca = X_pca, N_pca = N_pca, \
+            log_transformed = log_transformed, verbose = verbose )
 
     return df_pred
