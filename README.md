@@ -13,7 +13,7 @@ All the functions to implement MarkerCount are defined in the python3 script, `m
 
 One can import the function by adding a line in your script, i.e., `from marker_count import MarkerCount_Ref, MarkerCount`
 
-## Installation
+## Installation using pip and importing MarkerCount
 
 MarkerCount can be installed using pip command. With python3 installed in your system, simply use the follwing command in a terminal.
 
