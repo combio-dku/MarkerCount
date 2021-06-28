@@ -13,6 +13,13 @@ All the functions to implement MarkerCount are defined in the python3 script, `m
 
 One can import the function by adding a line in your script, i.e., `from marker_count import MarkerCount_Ref, MarkerCount`
 
+## Installation
+
+MarkerCount can be installed using pip command. With python3 installed in your system, simply use the follwing command in a terminal.
+`pip install MarkerCount`
+Once it is installed using pip, you can import the two function as
+`from MarkerCount import MarkerCount_Ref, MarkerCount`
+
 ## Example usage in Jupyter notebook
 
 We provide example usage of MarkerCount in Jupyter notebook file `cell_id_example_v03.ipynb`, where you can see how to import and how to run MarkerCount, both in reference-based and marker-based mode. For quick overveiw of the usage of MarkerCount, simply click `cell_id_example_v03.ipynb` above in the file list.
