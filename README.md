@@ -16,8 +16,11 @@ One can import the function by adding a line in your script, i.e., `from marker_
 ## Installation
 
 MarkerCount can be installed using pip command. With python3 installed in your system, simply use the follwing command in a terminal.
+
 `pip install MarkerCount`
+
 Once it is installed using pip, you can import the two function as
+
 `from MarkerCount import MarkerCount_Ref, MarkerCount`
 
 ## Example usage in Jupyter notebook
