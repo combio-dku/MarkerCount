@@ -19,7 +19,7 @@ MarkerCount can be installed using pip command. With python3 installed in your s
 
 `pip install MarkerCount`
 
-Once it is installed using pip, you can import the two function as
+Once it is installed using pip, you can import the two functions using the following python command.
 
 `from MarkerCount import MarkerCount_Ref, MarkerCount`
 
