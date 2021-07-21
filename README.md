@@ -21,7 +21,7 @@ MarkerCount can be installed using pip command. With python3 installed in your s
 
 Once it is installed using pip, you can import the two functions using the following python command.
 
-`from MarkerCount import MarkerCount_Ref, MarkerCount`
+`from MarkerCount.marker_count import MarkerCount_Ref, MarkerCount`
 
 ## Example usage in Jupyter notebook
 
