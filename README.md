@@ -1,7 +1,6 @@
 ## MarkerCount updated 
-Dec. 06, 2021: Now, MarkerCount can be used in R. Please see the instruction below.
-
-June 27, 2021: Slight modification was made to improve the identification performance.
+1. Dec. 06, 2021: Now, MarkerCount can be used in R. Please see the instruction below.
+2. June 27, 2021: Slight modification was made to improve the identification performance.
 
 ## MarkerCount: Brief introduction
 MarkerCount is a python3 cell-type identification toolkit for single-cell RNA-Seq experiments.
