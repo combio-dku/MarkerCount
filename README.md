@@ -23,7 +23,7 @@ Once it is installed using pip, you can import the two functions using the follo
 
 `from MarkerCount.marker_count import MarkerCount_Ref, MarkerCount`
 
-You also can import and us MarkerCount in R, for which you need the R package `reticulate`.
+You also can import and use MarkerCount in R, for which you need the R package `reticulate`.
 First, import MarkerCount using the following command
 
 `library(reticulate)`  
