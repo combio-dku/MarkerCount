@@ -13,7 +13,7 @@ All the functions to implement MarkerCount are defined in the python3 script, `m
 1. `MarkerCount()`: marker-based cell-type identifier
 1. `MarkerCount_Ref()`: reference-based cell-type identifier
 
-One can import the function by adding a line in your script, i.e., `from marker_count import MarkerCount_Ref, MarkerCount`
+One can import the function by adding a line in your script, i.e., `from MarkerCount.marker_count import MarkerCount_Ref, MarkerCount`
 
 ## Installation using pip, importing MarkerCount in Python
 
