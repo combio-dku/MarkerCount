@@ -14,7 +14,7 @@ All the functions to implement MarkerCount are defined in the python3 script, `m
 
 One can import the function by adding a line in your script, i.e., `from marker_count import MarkerCount_Ref, MarkerCount`
 
-## Installation using pip, importing MarkerCount in Python and Using in R
+## Installation using pip, importing MarkerCount in Python
 
 MarkerCount can be installed using pip command. With python3 installed in your system, simply use the follwing command in a terminal.
 
@@ -23,19 +23,6 @@ MarkerCount can be installed using pip command. With python3 installed in your s
 Once it is installed using pip, you can import the two functions using the following python command.
 
 `from MarkerCount.marker_count import MarkerCount_Ref, MarkerCount`
-
-You also can import and use MarkerCount in R, for which you need the R package `reticulate`.
-First, import MarkerCount using the following command
-
-`library(reticulate)`  
-`mkrcnt <- import("MarkerCount.marker_count")`
-
-Then, you can call the MarkerCount functions as follows.
-
-1. `df_res <- mkrcnt$MarkerCount( .. arguments .. )` : marker-based cell-type identifier
-2. `df_res <- mkrcnt$MarkerCount_Ref( .. arguments .. )` : reference-based cell-type identifier
-
-The arguments to pass and the return value are the same as those in python.
 
 ## Example usage in Jupyter notebook
 
@@ -51,6 +38,22 @@ To run the example, please download the script, Jupyter notebook file, maker mat
 To run MarkerCount, you need the python packages `Numpy`, `Pandas`, `sklearn` and `scipy`.
 `scanpy` and `plotly` are required only to show the results, not for the MarkerCount itself.
 All of them can be installed simply using `pip` command.
+
+## Using MarkerCount in R
+
+(Installed using pip) You also can import and use MarkerCount in R, for which you need the R package `reticulate`.
+First, import MarkerCount using the following command
+
+`library(reticulate)`  
+`mkrcnt <- import("MarkerCount.marker_count")`
+
+Then, you can call the MarkerCount functions as follows.
+
+1. `df_res <- mkrcnt$MarkerCount( .. arguments .. )` : marker-based cell-type identifier
+2. `df_res <- mkrcnt$MarkerCount_Ref( .. arguments .. )` : reference-based cell-type identifier
+
+The arguments to pass and the return value are the same as those in python.
+R example codes is in the Jupyter notebook file `cell_id_R_example_v04.ipynb`
 
 ## Contact
 Send email to syoon@dku.edu for any inquiry on the usages.
