@@ -25,6 +25,8 @@ Once it is installed using pip, you can import the two functions using the follo
 
 `from MarkerCount.marker_count import MarkerCount_Ref, MarkerCount`
 
+Python example codes is in the Jupyter notebook file `cell_id_Py_example_v04.ipynb`
+
 ## Using MarkerCount in R
 
 (Installed using pip) You also can import and use MarkerCount in R, for which you need the R package `reticulate`.
