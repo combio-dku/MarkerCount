@@ -1,4 +1,4 @@
-## MarkerCount updated 
+## MarkerCount update
 1. Dec. 06, 2021: Now, MarkerCount can be used in R. Please see the instruction below.
 2. June 27, 2021: Slight modification was made to improve the identification performance.
 3. Refer to master branch of MarkerCount for example data. https://github.com/combio-dku/MarkerCount/tree/master/
