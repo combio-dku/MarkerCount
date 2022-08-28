@@ -6,8 +6,8 @@
 ## MarkerCount: Brief introduction
 - MarkerCount is a python3 cell-type identification toolkit for single-cell RNA-Seq experiments.
 - Although it was developed using python3, you can run it in R as well (please see below).
-- MarkerCount works both in reference and marker-based mode, where the latter utilizes only the existing lists of markers, while the former required pre-annotated dataset to train the model. Please refer to the preprint manuscript "MarkerCount: A stable, count-based cell type identifier for single cell RNA-Seq experiments" available at https://www.researchsquare.com/article/rs-418249/v2 DOI:
-https://doi.org/10.21203/rs.3.rs-418249/v2 
+- MarkerCount works both in reference and marker-based mode, where the latter utilizes only the existing lists of markers, while the former required pre-annotated dataset to train the model. Please refer to the preprint manuscript "MarkerCount: A stable, count-based cell type identifier for single cell RNA-Seq experiments" available at https://www.sciencedirect.com/science/article/pii/S2001037022002239 DOI:
+https://doi.org/10.1016/j.csbj.2022.06.010 
 
 All the functions to implement MarkerCount are defined in the python3 script, `marker_count.py`, where the two key functions are 
 
