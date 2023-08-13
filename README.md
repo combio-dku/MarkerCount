@@ -1,6 +1,6 @@
 ## MarkerCount
 
-![PyPI Version](https://img.shields.io/pypi/v/MarkerCount.svg)  ![PyPI Downloads](https://img.shields.io/pypi/dm/MarkerCount.svg) 
+![PyPI Version](https://img.shields.io/pypi/v/MarkerCount.svg)  ![PyPI Downloads](https://img.shields.io/pypi/dm/MarkerCount.svg) ![GitHub License](https://img.shields.io/github/license/combio-dku/MarkerCount.svg)
 
 ## Updates
 1. Dec. 06, 2021: Now, MarkerCount can be used in R. Please see the instruction below.
