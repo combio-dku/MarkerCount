@@ -12,16 +12,16 @@
 - Although it was developed using python3, you can run it in R as well (please see below).
 - MarkerCount works both in reference and marker-based mode, where the latter utilizes only the existing lists of markers, while the former required pre-annotated dataset to train the model. 
 
-## Cite
-- "Hierarchical cell-type identifier accurately distinguishes immune-cell subtypes enabling precise profiling of tissue microenvironment with single-cell RNA-sequencing", Briefings in Bioinformatics, available at https://doi.org/10.1093/bib/bbad006, PMID: [36681937](https://pubmed.ncbi.nlm.nih.gov/36681937/)
-- "MarkerCount: A stable, count-based cell type identifier for single cell RNA-Seq experiments" Computational and Structural Biotechnology Journal, June 2022, available at https://doi.org/10.1016/j.csbj.2022.06.010, PMID: [35782735](https://pubmed.ncbi.nlm.nih.gov/35782735/)
-
 All the functions to implement MarkerCount are defined in the python3 script, `marker_count.py`, where the two key functions are 
 
 1. `MarkerCount()`: marker-based cell-type identifier
 1. `MarkerCount_Ref()`: reference-based cell-type identifier
 
 One can import the function by adding a line in your script, i.e., `from MarkerCount.marker_count import MarkerCount_Ref, MarkerCount`
+
+## Cite
+- "Hierarchical cell-type identifier accurately distinguishes immune-cell subtypes enabling precise profiling of tissue microenvironment with single-cell RNA-sequencing", Briefings in Bioinformatics, available at https://doi.org/10.1093/bib/bbad006, PMID: [36681937](https://pubmed.ncbi.nlm.nih.gov/36681937/)
+- "MarkerCount: A stable, count-based cell type identifier for single cell RNA-Seq experiments" Computational and Structural Biotechnology Journal, June 2022, available at https://doi.org/10.1016/j.csbj.2022.06.010, PMID: [35782735](https://pubmed.ncbi.nlm.nih.gov/35782735/)
 
 ## Installation using pip, importing MarkerCount in Python
 
