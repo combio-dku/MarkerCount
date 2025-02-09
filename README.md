@@ -5,8 +5,7 @@
 ## Updates
 1. Dec. 06, 2021: Now, MarkerCount can be used in R. Please see the instruction below.
 2. June 27, 2021: Slight modification was made to improve the identification performance.
-3. Refer to master branch of MarkerCount for example data. https://github.com/combio-dku/MarkerCount/tree/master/
-
+   
 ## Cite
 - __HiCAT:__ "Hierarchical cell-type identifier accurately distinguishes immune-cell subtypes enabling precise profiling of tissue microenvironment with single-cell RNA-sequencing", Briefings in Bioinformatics, available at https://doi.org/10.1093/bib/bbad006, PMID: [36681937](https://pubmed.ncbi.nlm.nih.gov/36681937/)
 - __MarkerCount:__ "MarkerCount: A stable, count-based cell type identifier for single cell RNA-Seq experiments" Computational and Structural Biotechnology Journal, June 2022, available at https://doi.org/10.1016/j.csbj.2022.06.010, PMID: [35782735](https://pubmed.ncbi.nlm.nih.gov/35782735/)
