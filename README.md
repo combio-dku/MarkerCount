@@ -3,7 +3,7 @@
 ![PyPI Version](https://img.shields.io/pypi/v/MarkerCount.svg)  ![PyPI Downloads](https://img.shields.io/pypi/dm/MarkerCount.svg) 
 
 ## Updates
-1. Jul. 27, 2022: An improved version of MarkerCount, [HiCAT](https://github.com/combio-dku/HiCAT), was released.
+1. Jul. 27, 2022: An improved version called [HiCAT](https://github.com/combio-dku/HiCAT) was released (merged with MarkerCount).
 2. Dec. 06, 2021: Now, MarkerCount can be used in R. Please see the instruction below.
 3. June 27, 2021: Slight modification was made to improve the identification performance.
    
