@@ -8,8 +8,8 @@
 3. June 27, 2021: Slight modification was made to improve the identification performance.
    
 ## Cite
-- __HiCAT:__ "Hierarchical cell-type identifier accurately distinguishes immune-cell subtypes enabling precise profiling of tissue microenvironment with single-cell RNA-sequencing", Briefings in Bioinformatics, available at https://doi.org/10.1093/bib/bbad006, PMID: [36681937](https://pubmed.ncbi.nlm.nih.gov/36681937/)
-- __MarkerCount:__ "MarkerCount: A stable, count-based cell type identifier for single cell RNA-Seq experiments" Computational and Structural Biotechnology Journal, June 2022, available at https://doi.org/10.1016/j.csbj.2022.06.010, PMID: [35782735](https://pubmed.ncbi.nlm.nih.gov/35782735/)
+- "Hierarchical cell-type identifier accurately distinguishes immune-cell subtypes enabling precise profiling of tissue microenvironment with single-cell RNA-sequencing", Briefings in Bioinformatics, available at https://doi.org/10.1093/bib/bbad006, PMID: [36681937](https://pubmed.ncbi.nlm.nih.gov/36681937/)
+- "MarkerCount: A stable, count-based cell type identifier for single cell RNA-Seq experiments" Computational and Structural Biotechnology Journal, June 2022, available at https://doi.org/10.1016/j.csbj.2022.06.010, PMID: [35782735](https://pubmed.ncbi.nlm.nih.gov/35782735/)
 
 ## MarkerCount: Brief introduction
 - MarkerCount is a python3 cell-type identification toolkit for single-cell RNA-Seq experiments.
