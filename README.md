@@ -1,6 +1,10 @@
 ## MarkerCount
 
-![PyPI Version](https://img.shields.io/pypi/v/MarkerCount.svg)  ![PyPI Downloads](https://img.shields.io/pypi/dm/MarkerCount.svg) 
+HiCAT: ![PyPI Version](https://img.shields.io/pypi/v/hicat.svg)  [![Downloads](https://pepy.tech/badge/hicat)](https://pepy.tech/project/hicat) [![Downloads/Month](https://pepy.tech/badge/hicat/month)](https://pepy.tech/project/hicat)
+
+MarkerCount: ![PyPI Version](https://img.shields.io/pypi/v/MarkerCount.svg)  [![Downloads](https://pepy.tech/badge/hicat)](https://pepy.tech/project/MarkerCount) [![Downloads/Month](https://pepy.tech/badge/hicat/month)](https://pepy.tech/project/MarkerCount)  
+
+
 
 ## Updates
 1. Jul. 27, 2022: An improved version called [HiCAT](https://github.com/combio-dku/HiCAT) was released (merged with MarkerCount).
